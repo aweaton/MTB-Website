@@ -32,3 +32,12 @@ For named workflows, consult `prompts/README.md` and the matching template. `$ex
 - `docs/security-and-approval.md` for trust and permissions.
 
 **These files describe desired behavior; the Codex runtime and GitHub controls enforce actual permissions.**
+
+## MTB-Website project context
+- Purpose: an informative and visually rich Western Newfoundland mountain-biking destination and trail guide; first pilot is Pasadena, Newfoundland and Labrador.
+- Core content: destinations, trail networks, individual trails, and featured ride routes composed of trail segments; interactive maps, photography and video.
+- Content workflow: ChatGPT-assisted GitHub updates with reviewable changes; Codex implements software changes. No administrative dashboard or user accounts planned for initial release.
+- Mapping inputs: appropriately licensed OpenStreetMap data and personally supplied/authorized GPX recordings. Preserve attribution, provenance, import date, and verification status. Do not scrape or republish third-party trail data without rights.
+- Safety: do not represent imported trails as bike-accessible, open or safe unless verified; distinguish unknown conditions from confirmed information.
+- Tech stack, tooling, build/test commands, map tiles, and hosting remain undecided. Do not fabricate commands or pick frameworks without an approved implementation issue.
+- The project's source agent framework revision is recorded at docs/agent-framework-version.md.
