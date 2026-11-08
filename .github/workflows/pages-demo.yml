@@ -1,0 +1,65 @@
+name: Fictional demo Pages
+
+on:
+  # The approved feature branch temporarily occupies the one Pages URL.
+  # After review and merge, main takes over that same URL.
+  push:
+    branches: [main, feat/11-pasadena-demo]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run format:check
+      - run: npx playwright install --with-deps chromium
+      # Browser tests build the separately opted-in fictional public demo.
+      - run: npm run test:browser
+      - name: Verify real-trail release stays blocked
+        run: |
+          if npm run build:release > release-check.log 2>&1; then
+            cat release-check.log
+            exit 1
+          fi
+          cat release-check.log
+          grep -q 'Release blocked: synthetic or unverified data' release-check.log
+      # Rebuild explicitly after negative release tests so dist is the public demo.
+      - run: npm run build:public-demo
+        if: github.event_name == 'push'
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push'
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Publish fictional demo (preview branch or main)
+        id: deployment
+        uses: actions/deploy-pages@v4

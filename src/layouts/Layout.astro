@@ -1,0 +1,37 @@
+---
+import "../styles/site.css";
+import { warning } from "../lib/trails.mjs";
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>{title} · Pasadena MTB demo</title>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href={import.meta.env.BASE_URL}>
+        WESTERN / NL <span>MTB FIELD NOTES</span>
+      </a>
+      <nav aria-label="Main">
+        <a href={import.meta.env.BASE_URL}>Destination</a>
+        <a href={`${import.meta.env.BASE_URL}map/`}>Explore the demo ↗</a>
+      </nav>
+    </header>
+    <div class="warning">{warning}</div>
+    <slot />
+    <footer>
+      Fictional demo · Pasadena, Newfoundland and Labrador
+      <br />
+      All trails and rides are fictional. Access, safety and conditions are
+      unknown.
+    </footer>
+  </body>
+</html>

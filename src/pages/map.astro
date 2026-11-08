@@ -1,0 +1,224 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { records, warning, coordinatesFor } from "../lib/trails.mjs";
+const features = records.trails.map((trail, index) => ({
+  type: "Feature",
+  properties: {
+    id: trail.id,
+    name: trail.name,
+    color: ["#287957", "#316fba", "#9b4c32"][index],
+  },
+  geometry: {
+    type: "LineString",
+    coordinates: coordinatesFor(trail.segments).flatMap(
+      (line: number[][], index: number) => (index ? line.slice(1) : line),
+    ),
+  },
+}));
+---
+
+<Layout title="Explore the demo">
+  <main>
+    <p class="eyebrow">PASADENA AREA / SYNTHETIC NETWORK</p>
+    <h1 class="map-title">
+      Find your next <em>idea.</em>
+    </h1>
+    <p>
+      Hand-authored geometry near Pasadena, NL. These lines do not describe
+      actual trails.
+    </p>
+    <div class="map-layout">
+      <section>
+        <div class="map-toolbar">
+          <label>
+            <input id="basemap" type="checkbox" /> Load OpenStreetMap basemap
+            (online)
+          </label>
+          <button id="reset" type="button">
+            Reset view
+          </button>
+        </div>
+        <div id="map" aria-label="Interactive fictional trail map"></div>
+        <p id="map-status" role="status">
+          Loading map. All trail details are available in the list below.
+        </p>
+        <p class="caption">
+          Schematic by default; no tile requests. Optional basemap: ©{" "}
+          <a href="https://www.openstreetmap.org/copyright">
+            OpenStreetMap contributors
+          </a>
+          . Map rendering: MapLibre GL JS.
+        </p>
+        <p class="legend">
+          <span class="easy">● Easy / singletrack</span>{" "}
+          <span class="moderate">● Moderate / singletrack</span>{" "}
+          <span class="difficult">● Difficult / technical singletrack</span>
+        </p>
+      </section>
+      <aside>
+        <h2>Trail details</h2>
+        <p id="selection" role="status">
+          Select a line or a trail below.
+        </p>
+        <div id="detail"></div>
+      </aside>
+    </div>
+    <section aria-label="Trail list fallback">
+      <h2>The fictional network</h2>
+      <p>
+        Use this list with or without the map. Access and conditions: unknown
+        for every route.
+      </p>
+      <div class="cards">
+        {records.trails.map((trail) => (
+          <article id={trail.id}>
+            <p class="warning">{warning}</p>
+            <h3>{trail.name}</h3>
+            <p>
+              {trail.difficulty} · {trail.type}
+            </p>
+            <p>
+              Source: synthetic · Permission: synthetic · Verification:
+              synthetic · Access: unknown
+            </p>
+            <button type="button" data-trail={trail.id}>
+              Show {trail.name}
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+    <section class="ride">
+      <p class="eyebrow">FEATURED DEMO RIDE</p>
+      <h2>{records.rides[0].name}</h2>
+      <p class="warning">{warning}</p>
+      <p>{records.rides[0].description}</p>
+      <ol>
+        {records.rides[0].segments.map((ref) => (
+          <li>
+            Segment {ref.id.toUpperCase()} · {ref.direction}
+          </li>
+        ))}
+      </ol>
+      <p>Access: unknown · Permission: synthetic · Verification: synthetic</p>
+    </section>
+    <script
+      id="map-data"
+      type="application/json"
+      set:html={JSON.stringify({ type: "FeatureCollection", features })}
+    />
+  </main>
+</Layout>
+<script>
+  import * as maplibregl from "maplibre-gl";
+  import "maplibre-gl/dist/maplibre-gl.css";
+  import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+  maplibregl.setWorkerUrl(workerUrl);
+  const status = document.querySelector<HTMLElement>("#map-status")!;
+  const data = JSON.parse(document.querySelector("#map-data")!.textContent!);
+  let map: maplibregl.Map | undefined;
+  const bounds: maplibregl.LngLatBoundsLike = [
+    [-57.619, 49.009],
+    [-57.564, 49.041],
+  ];
+  function select(id: string) {
+    const article = document.getElementById(id)!;
+    document.querySelector("#selection")!.textContent =
+      article.querySelector("h3")!.textContent;
+    const detail = document.querySelector("#detail")!;
+    detail.replaceChildren(
+      ...Array.from(article.children)
+        .filter((el) => el.tagName !== "BUTTON")
+        .map((el) => el.cloneNode(true)),
+    );
+    if (map?.getLayer("selected"))
+      map.setFilter("selected", ["==", ["get", "id"], id]);
+  }
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-trail]")
+    .forEach((button) =>
+      button.addEventListener("click", () => select(button.dataset.trail!)),
+    );
+  try {
+    map = new maplibregl.Map({
+      container: "map",
+      style: {
+        version: 8,
+        sources: {},
+        layers: [
+          {
+            id: "background",
+            type: "background",
+            paint: { "background-color": "#e5ebe3" },
+          },
+        ],
+      },
+      bounds,
+      fitBoundsOptions: { padding: 35 },
+      attributionControl: false,
+    });
+    map.addControl(new maplibregl.NavigationControl());
+    map.addControl(
+      new maplibregl.AttributionControl({
+        customAttribution: "Synthetic demo — not for navigation",
+      }),
+    );
+    map.on("load", () => {
+      map!.addSource("trails", { type: "geojson", data });
+      map!.addLayer({
+        id: "selected",
+        type: "line",
+        source: "trails",
+        filter: ["==", ["get", "id"], ""],
+        paint: { "line-color": "#f1bf53", "line-width": 13 },
+      });
+      map!.addLayer({
+        id: "trails",
+        type: "line",
+        source: "trails",
+        paint: { "line-color": ["get", "color"], "line-width": 6 },
+      });
+      status.textContent =
+        "Map ready. Select a colored trail to see its details.";
+      map!.on("click", "trails", (event) =>
+        select(String(event.features?.[0]?.properties.id)),
+      );
+      map!.on("mouseenter", "trails", () => {
+        map!.getCanvas().style.cursor = "pointer";
+      });
+      map!.on("mouseleave", "trails", () => {
+        map!.getCanvas().style.cursor = "";
+      });
+    });
+    map.on("error", () => {
+      status.textContent =
+        "Map or basemap unavailable. Use the trail list below; all details remain available.";
+    });
+    document.querySelector("#basemap")!.addEventListener("change", (event) => {
+      const enabled = (event.target as HTMLInputElement).checked;
+      if (!map!.isStyleLoaded()) return;
+      if (enabled && !map!.getSource("osm")) {
+        map!.addSource("osm", {
+          type: "raster",
+          tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          tileSize: 256,
+          maxzoom: 19,
+          attribution: "© OpenStreetMap contributors",
+        });
+        map!.addLayer({ id: "osm", type: "raster", source: "osm" }, "selected");
+      }
+      if (map!.getLayer("osm"))
+        map!.setLayoutProperty(
+          "osm",
+          "visibility",
+          enabled ? "visible" : "none",
+        );
+    });
+    document
+      .querySelector("#reset")!
+      .addEventListener("click", () => map!.fitBounds(bounds, { padding: 35 }));
+  } catch {
+    status.textContent =
+      "Interactive map unavailable. Use the trail list below.";
+  }
+</script>
