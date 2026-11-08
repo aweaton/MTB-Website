@@ -17,18 +17,18 @@ const { title } = Astro.props;
   </head>
   <body>
     <header>
-      <a class="brand" href="/">
+      <a class="brand" href={import.meta.env.BASE_URL}>
         WESTERN / NL <span>MTB FIELD NOTES</span>
       </a>
       <nav aria-label="Main">
-        <a href="/">Destination</a>
-        <a href="/map/">Explore the demo ↗</a>
+        <a href={import.meta.env.BASE_URL}>Destination</a>
+        <a href={`${import.meta.env.BASE_URL}map/`}>Explore the demo ↗</a>
       </nav>
     </header>
     <div class="warning">{warning}</div>
     <slot />
     <footer>
-      Local prototype · Pasadena, Newfoundland and Labrador
+      Fictional demo · Pasadena, Newfoundland and Labrador
       <br />
       All trails and rides are fictional. Access, safety and conditions are
       unknown.

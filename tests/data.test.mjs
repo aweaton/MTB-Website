@@ -42,3 +42,29 @@ test("release gate rejects synthetic and unverified records", () => {
     /Release blocked/,
   );
 });
+
+test("build authorization cannot bypass the real-trail release guard", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const cli = new URL("../node_modules/astro/bin/astro.mjs", import.meta.url);
+  for (const args of [[], ["--mode", "public-demo"], ["--mode=release"]]) {
+    const result = spawnSync(
+      process.execPath,
+      [cli.pathname, "build", ...args],
+      {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          ASTRO_TELEMETRY_DISABLED: "1",
+          // Both opt-ins must still fail for release; public-demo needs its own flag.
+          DEMO_BUILD: args.includes("--mode=release") ? "true" : "",
+          PUBLIC_DEMO_BUILD: args.includes("--mode=release") ? "true" : "",
+        },
+      },
+    );
+    assert.notEqual(result.status, 0);
+    assert.match(
+      result.stdout + result.stderr,
+      /Release blocked: synthetic or unverified data/,
+    );
+  }
+});

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("destination, map selection, loop and mobile layout", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "A little further",
   );
@@ -51,7 +51,7 @@ test("destination, map selection, loop and mobile layout", async ({ page }) => {
 test("fallback remains complete without JavaScript", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
-  await page.goto("/map/");
+  await page.goto("map/");
   await expect(page.locator("article")).toHaveCount(3);
   await expect(
     page.getByRole("heading", { name: "The Fictional Three" }),
@@ -63,7 +63,7 @@ test("WebGL failure leaves list selection usable", async ({ page }) => {
     HTMLCanvasElement.prototype.getContext = (() =>
       null) as typeof HTMLCanvasElement.prototype.getContext;
   });
-  await page.goto("/map/");
+  await page.goto("map/");
   await expect(page.locator("#map-status")).toContainText("unavailable");
   await page.getByRole("button", { name: "Show Fern Sketch" }).click();
   await expect(page.locator("#detail")).toContainText("Fern Sketch");
@@ -75,10 +75,48 @@ test("tile failure keeps map details and fallback available", async ({
   await page.route("https://tile.openstreetmap.org/**", (route) =>
     route.abort(),
   );
-  await page.goto("/map/");
+  await page.goto("map/");
   await expect(page.locator("#map-status")).toContainText("Map ready");
   await page.locator("#basemap").check();
   await expect(page.locator("#map-status")).toContainText("unavailable");
   await page.getByRole("button", { name: "Show Imaginary Brook" }).click();
   await expect(page.locator("#detail")).toContainText("Imaginary Brook");
+});
+
+// Crawl same-origin links and generated assets under the Pages project prefix.
+test("public demo links, assets and warnings stay under the Pages base", async ({
+  page,
+  request,
+}) => {
+  const failures: string[] = [];
+  page.on("response", (response) => {
+    if (
+      response.url().startsWith("http://127.0.0.1:4322/") &&
+      response.status() >= 400
+    )
+      failures.push(`${response.status()} ${response.url()}`);
+  });
+  for (const route of ["./", "map/"]) {
+    await page.goto(route);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      "noindex,nofollow",
+    );
+    await expect(page.locator("body > .warning")).toHaveText(
+      "DEMO — fictional routes, not for navigation.",
+    );
+    const paths = await page
+      .locator("a[href], script[src], link[href]")
+      .evaluateAll((elements) =>
+        elements
+          .map((el) => el.getAttribute("href") ?? el.getAttribute("src")!)
+          .filter((path) => !/^(https?:|#)/.test(path)),
+      );
+    for (const path of paths) {
+      expect(path).toMatch(/^\/MTB-Website\//);
+      expect((await request.get(path)).ok(), path).toBe(true);
+    }
+    await expect(page.locator('a[download], a[href$=".gpx"]')).toHaveCount(0);
+  }
+  expect(failures).toEqual([]);
 });

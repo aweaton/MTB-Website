@@ -10,7 +10,8 @@
     "build:release": "astro build --mode release",
     "preview": "astro preview --host 0.0.0.0",
     "test:browser": "playwright test",
-    "format:check": "prettier --plugin=prettier-plugin-astro --check src tests astro.config.mjs playwright.config.ts tsconfig.json package.json"
+    "format:check": "prettier --plugin=prettier-plugin-astro --check src tests astro.config.mjs playwright.config.ts tsconfig.json package.json .github/workflows/pages-demo.yml",
+    "build:public-demo": "PUBLIC_DEMO_BUILD=true astro build --mode public-demo"
   },
   "dependencies": {
     "astro": "^7.4.7",

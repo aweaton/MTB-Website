@@ -1,0 +1,64 @@
+name: Fictional demo Pages
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "To authorize publication, type PUBLISH FICTIONAL DEMO (main branch only)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run format:check
+      - run: npx playwright install --with-deps chromium
+      # Browser tests build the separately opted-in public demo and crawl its links.
+      - run: npm run test:browser
+      - name: Verify real-trail release stays blocked
+        run: |
+          if npm run build:release > release-check.log 2>&1; then
+            cat release-check.log
+            exit 1
+          fi
+          cat release-check.log
+          grep -q 'Release blocked: synthetic or unverified data' release-check.log
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirmation == 'PUBLISH FICTIONAL DEMO'
+        with:
+          path: dist
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.confirmation == 'PUBLISH FICTIONAL DEMO'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy explicitly authorized fictional demo
+        id: deployment
+        uses: actions/deploy-pages@v4

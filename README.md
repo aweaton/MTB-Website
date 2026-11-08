@@ -1,6 +1,6 @@
-# Western Newfoundland MTB — local demo
+# Western Newfoundland MTB — fictional demo
 
-Astro + MapLibre prototype for Issue #11. **DEMO — fictional routes, not for navigation.** No real trail, access or safety information is supplied.
+Astro + MapLibre prototype for Issue #11, prepared for optional public GitHub Pages hosting. **DEMO — fictional routes, not for navigation.** No real trail, access or safety information is supplied.
 
 ## Run locally
 
@@ -11,12 +11,13 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:4321. `/` is the destination view; `/map/` contains the interactive map, trail details, accessible list and featured loop. The list remains readable without JavaScript or WebGL.
+Open http://localhost:4321/MTB-Website/. `/MTB-Website/` is the destination view; `/MTB-Website/map/` contains the interactive map, trail details, accessible list and featured loop. The list remains readable without JavaScript or WebGL.
 
 ```sh
 npm test                 # geometry, references, connectivity, direction, release gate
 npm run check            # Astro / TypeScript
 npm run build            # explicit LOCAL DEMO output in dist; do not publish
+npm run build:public-demo # separately opted-in fictional output for Pages
 npm run build:release    # deliberately fails while synthetic/unverified data exists
 npm run test:browser     # Playwright against built site; npx playwright install chromium
 ```
@@ -27,7 +28,26 @@ npm run test:browser     # Playwright against built site; npx playwright install
 
 `src/lib/trails.mjs` validates the fixture at startup/build and assembles ordered segment coordinates without changing the original geometry. Future authorized GPX/OSM imports can produce the same GeoJSON plus records; real data needs per-source provenance and the rights/access/freshness work in #4, #7 and #9. This is a deliberately small schema, not a GIS import pipeline or routing engine.
 
-Only `npm run build` explicitly opts into local synthetic output. Direct Astro builds and `build:release` reject the current fixture. The release guard rejects synthetic or unverified datasets/features; it does not certify future imports or authorize deployment. Do not override it to publish this demo. There is no deploy workflow.
+`npm run build` opts into local synthetic output. `npm run build:public-demo` separately sets `PUBLIC_DEMO_BUILD=true` and uses `--mode public-demo` for the authorized fictional public demo. The flag and mode are both required. Direct Astro builds and `build:release` reject the fixture, including when both demo flags are present. Neither build command deploys anything. The release guard does not certify future imports or authorize publication of real trail information.
+
+## GitHub Pages preparation (not deployed)
+
+The configured URL is `https://aweaton.github.io/MTB-Website/`. Astro uses `site: https://aweaton.github.io`, `base: /MTB-Website/` and trailing slashes. Navigation uses `import.meta.env.BASE_URL`; generated CSS, scripts and the MapLibre worker use the same prefix. Development and previews also use this project prefix. If the repository name or host changes, update `astro.config.mjs` and the browser test URL together.
+
+`.github/workflows/pages-demo.yml` validates pull requests without Pages write permissions or deployments. It runs data/build-guard checks, typechecking, formatting and Chromium tests against the public demo build, including internal links/assets and fallback behavior. Pages artifact upload and deployment are gated to a **manual workflow dispatch on main** whose confirmation is exactly `PUBLISH FICTIONAL DEMO`. There is no push-triggered deployment. Do not run that dispatch until publication is separately authorized. GitHub Pages must be set to use GitHub Actions by a repository administrator; this change does not modify repository settings. Environment protection rules for `github-pages` can add a human approval gate.
+
+The public output retains the prominent fictional/not-for-navigation banner on both pages and every trail/ride detail, unknown access/safety status, no GPX downloads, isolated synthetic provenance and `noindex,nofollow`. The indexing hint is not access control; anyone can view output once it is published. The ordinary verified-trail release path stays blocked. Keep the basemap opt-in and its attribution; public demo approval does not approve real GIS imports.
+
+To test the exact Pages output without publishing:
+
+```sh
+npm run build:public-demo
+npm run preview
+# Open http://localhost:4321/MTB-Website/
+npm run test:browser
+```
+
+Browser tests build the public demo themselves on an isolated port and verify navigation, assets and worker loading at `/MTB-Website/`. No deployment is part of these commands.
 
 ## Map and licenses
 
