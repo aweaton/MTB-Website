@@ -1,0 +1,45 @@
+{
+  "synthetic": true,
+  "provenance": {
+    "source": "Hand-authored fictional fixture; no tracing or imported GIS",
+    "permission": "synthetic",
+    "access": "unknown",
+    "verification": "synthetic",
+    "importDate": null
+  },
+  "trails": [
+    {
+      "id": "fern",
+      "name": "Fern Sketch",
+      "difficulty": "Easy",
+      "type": "Singletrack",
+      "segments": [{ "id": "a", "direction": "forward" }]
+    },
+    {
+      "id": "ridge",
+      "name": "Paper Ridge",
+      "difficulty": "Moderate",
+      "type": "Singletrack",
+      "segments": [{ "id": "b", "direction": "forward" }]
+    },
+    {
+      "id": "brook",
+      "name": "Imaginary Brook",
+      "difficulty": "Difficult",
+      "type": "Technical singletrack",
+      "segments": [{ "id": "c", "direction": "reverse" }]
+    }
+  ],
+  "rides": [
+    {
+      "id": "loop",
+      "name": "The Fictional Three",
+      "description": "A demonstration loop assembled from three reusable segments. No real-world access or conditions have been verified.",
+      "segments": [
+        { "id": "a", "direction": "forward" },
+        { "id": "b", "direction": "forward" },
+        { "id": "c", "direction": "reverse" }
+      ]
+    }
+  ]
+}
